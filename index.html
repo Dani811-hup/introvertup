@@ -1,135 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Introvertup</title>
-<link rel="stylesheet" href="style.css">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <title>Introvertup</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon.png">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<!-- LOGIN -->
-<div id="loginScreen" class="center-screen">
-  <div class="wa-card">
-    <div class="logo">INTROVERT<span>UP</span> 🌙</div>
-    <p class="sub">WHERE QUIET TALKS LOUD</p>
-    <h3>Enter phone number</h3>
-    <div class="input-row">
-      <select id="code"><option value="+92">🇵🇰 +92</option><option value="+91">🇮🇳 +91</option><option value="+1">🇺🇸 +1</option><option value="+44">🇬🇧 +44</option><option value="+971">🇦🇪 +971</option></select>
-      <input id="phone" type="number" placeholder="300 1234567">
-    </div>
-    <button class="enter-btn" onclick="sendOtp()">NEXT</button>
-    <p id="otpInfo" style="font-size:11px;color:#FFD700;margin-top:8px"></p>
+  <div class="app">
+    <h1>INTROVERTUP</h1>
+    <p>WHERE QUIET TALKS LOUD</p>
+    <input type="text" placeholder="Enter phone number +92 300 1234567" />
+    <button>NEXT</button>
   </div>
-</div>
-
-<!-- OTP -->
-<div id="otpScreen" class="center-screen" style="display:none">
-  <div class="wa-card">
-    <div class="logo">VERIFY 🌙</div>
-    <p class="sub" id="verifyText">OTP</p>
-    <div class="input-row"><input id="otpInput" type="number" placeholder="Enter 6 digit OTP" style="width:100%"></div>
-    <button class="enter-btn" onclick="verifyOtp()">VERIFY</button>
-  </div>
-</div>
-
-<!-- MAIN WHATSAPP -->
-<div id="waMain" style="display:none">
-  <!-- Top Bar -->
-  <div class="top-bar">
-    <div class="top-title">Introvertup</div>
-    <div class="top-icons">📷 🔍 ⋮</div>
-  </div>
-  <!-- Tabs -->
-  <div class="tabs">
-    <div class="tab active" onclick="showTab('chats')">CHATS</div>
-    <div class="tab" onclick="showTab('status')">STATUS</div>
-    <div class="tab" onclick="showTab('calls')">CALLS</div>
-  </div>
-
-  <!-- CHATS TAB -->
-  <div id="tab-chats" class="tab-content">
-    <div id="userList"></div>
-    <div class="empty" id="emptyChat">No chats yet.<br>Tap + to add contact 🌙</div>
-  </div>
-  <!-- STATUS TAB -->
-  <div id="tab-status" class="tab-content" style="display:none">
-    <div class="status-card"><div class="status-add">+</div><div><b>My Status</b><br><small>Tap to add status update</small></div></div>
-    <p style="padding:15px;opacity:0.4;font-size:12px">Recent updates</p>
-    <div style="padding:30px;text-align:center;opacity:0.3">No status yet</div>
-  </div>
-  <!-- CALLS TAB -->
-  <div id="tab-calls" class="tab-content" style="display:none">
-    <div style="padding:30px;text-align:center;opacity:0.3">No calls yet<br><small>🌙 Calls are end-to-end encrypted</small></div>
-  </div>
-
-  <button class="fab" onclick="openAdd()">+</button>
-</div>
-
-<!-- ADD CONTACT MODAL -->
-<div id="addModal" style="display:none">
-  <div class="modal-box">
-    <h3>Add Contact</h3>
-    <input id="newContact" type="number" placeholder="923001234567">
-    <div style="display:flex;gap:10px;margin-top:12px"><button onclick="closeAdd()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#333;color:white">Cancel</button><button onclick="addContact()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#FFD700;font-weight:800">Add</button></div>
-  </div>
-</div>
-
-<!-- CHAT SCREEN -->
-<div id="chatScreen" style="display:none">
-  <div class="chat-top"><span onclick="closeChat()" style="font-size:22px;margin-right:12px">←</span> <img src="https://ui-avatars.com/api/?background=FFD700&color=000&name=" id="chatAvatar" style="width:32px;height:32px;border-radius:50%"><div style="margin-left:10px"><b id="chatName"></b><br><small id="chatStatus" style="font-size:10px;opacity:0.6">tap here for contact info</small></div></div>
-  <div id="messages"></div>
-  <div class="chat-input"><input id="msgInput" placeholder="Message"><button onclick="sendMsg()">➤</button></div>
-</div>
-
-<script src="/socket.io/socket.io.js"></script>
-<script>
-var socket=io(); var myPhone="", currentChat="", contacts=JSON.parse(localStorage.getItem('intro_contacts')||'[]');
-function sendOtp(){let c=document.getElementById('code').value; let p=document.getElementById('phone').value; if(p.length<7)return alert('Number dalo'); myPhone=c+p; socket.emit('send-otp',myPhone);}
-socket.on('otp-sent',m=>{document.getElementById('loginScreen').style.display='none';document.getElementById('otpScreen').style.display='flex';document.getElementById('verifyText').innerText='Code sent to '+myPhone+' (Check Termux)';document.getElementById('otpInfo').innerText=m;});
-function verifyOtp(){socket.emit('verify-otp',{phone:myPhone,otp:document.getElementById('otpInput').value});}
-socket.on('otp-verified',()=>{document.getElementById('otpScreen').style.display='none';document.getElementById('waMain').style.display='flex';renderContacts(); socket.emit('get-users');});
-socket.on('otp-error',e=>alert(e));
-
-function showTab(t){document.querySelectorAll('.tab-content').forEach(x=>x.style.display='none'); document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); document.getElementById('tab-'+t).style.display='block'; document.querySelector(`.tab[onclick="showTab('${t}')"]`).classList.add('active');}
-function openAdd(){document.getElementById('addModal').style.display='flex';}
-function closeAdd(){document.getElementById('addModal').style.display='none';}
-function addContact(){
- let n=document.getElementById('newContact').value.trim();
- if(!n)return; let full=n.startsWith('+')?n:'+'+n;
- if(!contacts.includes(full)){contacts.push(full); localStorage.setItem('intro_contacts',JSON.stringify(contacts));}
- closeAdd(); renderContacts(); document.getElementById('newContact').value='';
-}
-function renderContacts(){
- let list=document.getElementById('userList'); list.innerHTML='';
- if(contacts.length===0){document.getElementById('emptyChat').style.display='block';return;}
- document.getElementById('emptyChat').style.display='none';
- contacts.forEach(u=>{
-   let div=document.createElement('div'); div.className='chat-row';
-   div.innerHTML=`<img src="https://ui-avatars.com/api/?background=111B21&color=FFD700&name=${u.slice(-2)}"><div class="chat-info"><b>${u}</b><br><small>Tap to chat 🌙</small></div><small>${new Date().toLocaleTimeString().slice(0,5)}</small>`;
-   div.onclick=()=>openChat(u); list.appendChild(div);
- });
-}
-function openChat(u){
- currentChat=u;
- document.getElementById('chatScreen').style.display='flex';
- document.getElementById('chatName').innerText=u;
- document.getElementById('chatAvatar').src=`https://ui-avatars.com/api/?background=FFD700&color=000&name=${u.slice(-2)}`;
- document.getElementById('messages').innerHTML='';
-}
-function closeChat(){document.getElementById('chatScreen').style.display='none';}
-function sendMsg(){
- let t=document.getElementById('msgInput').value.trim(); if(!t||!currentChat)return;
- socket.emit('private-chat',{from:myPhone,to:currentChat,text:t,time:new Date().toLocaleTimeString().slice(0,5)});
- document.getElementById('msgInput').value='';
-}
-socket.on('private-chat',d=>{
- if(d.from!==currentChat && d.to!==currentChat && d.from!==myPhone){ if(!contacts.includes(d.from)){contacts.push(d.from); localStorage.setItem('intro_contacts',JSON.stringify(contacts)); renderContacts();} }
- if(d.from!==currentChat && d.to!==currentChat) return;
- let m=document.getElementById('messages');
- let b=document.createElement('div'); b.className=d.from===myPhone?'msg me':'msg other';
- b.innerHTML=`${d.text}<span class="meta">${d.time} ✓✓</span>`; m.appendChild(b); m.scrollTop=99999;
-});
-</script>
+  <script src="app.js"></script>
 </body>
 </html>
