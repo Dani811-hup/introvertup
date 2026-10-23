@@ -1,65 +1,56 @@
-const express = require('express');
-const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http);
-const path = require('path');
+// <<<< YAHAN APNI KEYS DALO >>>>
+const SUPABASE_URL = "https://TUMHARA-PROJECT.supabase.co";
+const SUPABASE_KEY = "TUMHARA-ANON-KEY";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-app.use(express.static(__dirname));
-app.use(express.json());
+let allVideos = [];
 
-let otpStore = {}; // number : otp
-let users = {}; // number : socket.id
+document.getElementById('upBtn').onclick = ()=> document.getElementById('uploadBox').style.display='block';
 
-app.get('/', (req,res)=>{ res.sendFile(path.join(__dirname,'index.html')); });
+async function loadVideos(){
+  const { data, error } = await supabaseClient.from('videos').select('*').order('created_at', {ascending:false});
+  if(data){ allVideos=data; render(data); } else { document.getElementById('videoGrid').innerHTML="No videos yet. Be first to upload!"; }
+}
 
-io.on('connection', (socket)=>{
+function render(list){
+  document.getElementById('videoGrid').innerHTML = list.map(v=>`
+    <div class="card" onclick="playReal('${v.video_url}', '${v.title.replace(/'/g,"")}')">
+      <video src="${v.video_url}" style="width:100%;height:180px;object-fit:cover"></video>
+      <div class="info"><h4>${v.title}</h4><p>${v.views||0} views • Real User</p></div>
+    </div>
+  `).join('');
+}
 
-  // 1. OTP BHEJNA
-  socket.on('send-otp', (phone)=>{
-    let otp = Math.floor(100000 + Math.random()*900000).toString();
-    otpStore[phone] = otp;
-    console.log(`\n🌙 OTP for ${phone} is: ${otp} \n`);
-    socket.emit('otp-sent', `OTP terminal me bheja hai: ${otp} (Demo)`);
-    // REAL ME YAHAN TWILIO SE SMS JAYEGA
-  });
+async function uploadReal(){
+  const title = document.getElementById('vTitle').value;
+  const file = document.getElementById('vFile').files[0];
+  const status = document.getElementById('status');
+  if(!title || !file) return alert('Title + Video file chahiye');
 
-  // 2. OTP VERIFY
-  socket.on('verify-otp', (data)=>{
-    let {phone, otp} = data;
-    if(otpStore[phone] && otpStore[phone] === otp){
-      users[phone] = socket.id;
-      socket.phone = phone;
-      delete otpStore[phone];
-      socket.emit('otp-verified', phone);
-      io.emit('user-list', Object.keys(users));
-      console.log(`✅ ${phone} verified and logged in`);
-    } else {
-      socket.emit('otp-error', 'Wrong OTP jani!');
-    }
-  });
+  status.innerText = "Uploading... 0%";
+  const fileName = Date.now() + "_" + file.name;
+  
+  // 1. Upload to storage
+  const { data: upData, error: upError } = await supabaseClient.storage.from('videos').upload(fileName, file);
+  if(upError){ status.innerText="Error: "+upError.message; return; }
 
-  // 3. PRIVATE MESSAGE (WHATSAPP RULE)
-  socket.on('private-chat', (data)=>{
-    // data = {to, from, text}
-    let targetSocketId = users[data.to];
-    if(targetSocketId){
-      io.to(targetSocketId).emit('private-chat', data);
-    }
-    // sender ko bhi bhejo taake uska bhi show ho
-    socket.emit('private-chat', data);
-  });
+  // 2. Get public URL
+  const { data: urlData } = supabaseClient.storage.from('videos').getPublicUrl(fileName);
+  
+  // 3. Save to DB
+  await supabaseClient.from('videos').insert([{title: title, video_url: urlData.publicUrl}]);
+  
+  status.innerText = "Uploaded! Live ho gaya!";
+  setTimeout(()=>location.reload(), 1000);
+}
 
-  socket.on('get-users', ()=>{
-    socket.emit('user-list', Object.keys(users));
-  });
+function playReal(url, title){
+  document.body.innerHTML = `<div style="background:#000;color:#fff;min-height:100vh"><a href="/" style="color:#fff;padding:15px;display:block">← Back to Home</a><video controls autoplay style="width:100%;max-height:70vh" src="${url}"></video><div style="padding:15px"><h2>${title}</h2><p>IntrovertUp • AI Police Verified ✓</p></div></div>`;
+}
 
-  socket.on('disconnect', ()=>{
-    if(socket.phone){
-      delete users[socket.phone];
-      io.emit('user-list', Object.keys(users));
-      console.log(`❌ ${socket.phone} disconnected`);
-    }
-  });
-});
+function searchVideo(){
+  const q = document.getElementById('search').value.toLowerCase();
+  render(allVideos.filter(v=>v.title.toLowerCase().includes(q)));
+}
 
-http.listen(3000, ()=>{ console.log('WHATSAPP CLONE LIVE: http://localhost:3000'); });
+loadVideos();
