@@ -1,18 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Introvertup</title>
-  <link rel="manifest" href="/manifest.json">
-  <link rel="icon" href="/icon.png">
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IntrovertUp - Real YouTube</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <div class="app">
-    <h1>INTROVERTUP</h1>
-    <p>WHERE QUIET TALKS LOUD</p>
-    <input type="text" placeholder="Enter phone number +92 300 1234567" />
-    <button>NEXT</button>
-  </div>
-  <script src="app.js"></script>
+<header>
+  <div class="logo" onclick="location.reload()">▶️ IntrovertUp</div>
+  <input id="search" placeholder="Search..." onkeyup="searchVideo()">
+  <button id="upBtn">+ Upload</button>
+</header>
+
+<div id="uploadBox">
+  <h3>Upload for Everyone</h3>
+  <input id="vTitle" placeholder="Title - ex: Chitral Vlog">
+  <input type="file" id="vFile" accept="video/*">
+  <p style="font-size:12px;color:#aaa">Video select karo, sab ko dikhega</p>
+  <button onclick="uploadReal()">Publish to YouTube</button>
+  <button onclick="document.getElementById('uploadBox').style.display='none'">Cancel</button>
+  <p id="status"></p>
+</div>
+
+<div id="videoGrid">Loading videos from server...</div>
+<script src="app.js"></script>
 </body>
 </html>
